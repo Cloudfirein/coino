@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Coino - Color Prediction Game</title>
+    
+    <!-- Meta tags for PWA -->
+    <meta name="description" content="Coino - The ultimate color prediction game with advanced betting system">
+    <meta name="theme-color" content="#667eea">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Coino">
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23667eea'%3E%3Cpath d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z'/%3E%3C/svg%3E">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Material Icons -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+    
+    <link rel="stylesheet" href="src/styles.css">
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div id="loading-screen" class="loading-screen">
+        <div class="loading-spinner"></div>
+        <p>Loading Coino...</p>
+    </div>
+
+    <!-- Authentication Screen -->
+    <div id="auth-screen" class="screen hidden">
+        <div class="auth-container">
+            <div class="app-logo">
+                <div class="logo-icon">
+                    <span class="material-icons">casino</span>
+                </div>
+                <h1>Coino</h1>
+                <p>Advanced Color Prediction Game</p>
+            </div>
+            
+            <div class="auth-tabs">
+                <button class="tab-btn active" data-tab="login">Login</button>
+                <button class="tab-btn" data-tab="register">Register</button>
+            </div>
+            
+            <div id="login-form" class="auth-form">
+                <div class="input-group">
+                    <span class="material-icons">email</span>
+                    <input type="email" id="login-email" placeholder="Email" required autocomplete="email">
+                </div>
+                <div class="input-group">
+                    <span class="material-icons">lock</span>
+                    <input type="password" id="login-password" placeholder="Password" required autocomplete="current-password">
+                </div>
+                <button class="auth-btn" id="login-btn">
+                    <span class="material-icons">login</span>
+                    Login
+                </button>
+            </div>
+            
+            <div id="register-form" class="auth-form hidden">
+                <div class="input-group">
+                    <span class="material-icons">person</span>
+                    <input type="text" id="register-name" placeholder="Full Name" required autocomplete="name">
+                </div>
+                <div class="input-group">
+                    <span class="material-icons">alternate_email</span>
+                    <input type="text" id="register-username" placeholder="Username" required autocomplete="username">
+                </div>
+                <div class="input-group">
+                    <span class="material-icons">email</span>
+                    <input type="email" id="register-email" placeholder="Email" required autocomplete="email">
+                </div>
+                <div class="input-group">
+                    <span class="material-icons">lock</span>
+                    <input type="password" id="register-password" placeholder="Password" required autocomplete="new-password">
+                </div>
+                <button class="auth-btn" id="register-btn">
+                    <span class="material-icons">person_add</span>
+                    Register & Get 10 Coins
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Game Screen -->
+    <div id="game-screen" class="screen hidden">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="user-info" id="user-info-header">
+                    <div class="user-avatar">
+                        <img id="header-avatar" src="https://images.pexels.com/photos/771742/pexels-photo-771742.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&fit=crop" alt="Avatar">
+                    </div>
+                    <div>
+                        <p id="user-name">Loading...</p>
+                        <p class="coin-balance">
+                            <span class="material-icons">monetization_on</span>
+                            <span id="coin-count">0</span> Coins
+                        </p>
+                    </div>
+                </div>
+                <div class="header-actions">
+                    <!-- Admin button will be added dynamically -->
+                    <button class="header-btn" id="profile-btn" title="Profile">
+                        <span class="material-icons">account_circle</span>
+                    </button>
+                    <button class="header-btn" id="leaderboard-btn" title="Leaderboard">
+                        <span class="material-icons">leaderboard</span>
+                    </button>
+                    <button class="header-btn logout-btn" id="logout-btn" title="Logout">
+                        <span class="material-icons">logout</span>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Navigation Tabs -->
+        <div class="nav-tabs">
+            <button class="nav-tab active" data-tab="public">
+                <span class="material-icons">public</span>
+                Public
+            </button>
+            <button class="nav-tab" data-tab="private">
+                <span class="material-icons">lock</span>
+                Private
+            </button>
+            <button class="nav-tab" data-tab="borrow">
+                <span class="material-icons">handshake</span>
+                Borrow
+            </button>
+        </div>
+
+        <!-- Public Game Tab -->
+        <div id="public-tab" class="tab-content active">
+            <!-- Game Status -->
+            <div class="game-status">
+                <div class="status-card">
+                    <h3 id="game-status-text">Initializing game system...</h3>
+                    <div class="game-info">
+                        <div class="info-item">
+                            <span class="material-icons">people</span>
+                            <span id="player-count">0 bets</span>
+                        </div>
+                        <div class="timer-container">
+                            <div class="timer-circle">
+                                <span id="countdown">--</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Color Selection -->
+            <div class="color-selection">
+                <h3>Choose Your Color</h3>
+                <div class="colors-grid">
+                    <button class="color-btn" data-color="red" style="background: linear-gradient(135deg, #f44336, #d32f2f);">
+                        <span>Red</span>
+                    </button>
+                    <button class="color-btn" data-color="green" style="background: linear-gradient(135deg, #4caf50, #388e3c);">
+                        <span>Green</span>
+                    </button>
+                    <button class="color-btn" data-color="blue" style="background: linear-gradient(135deg, #2196f3, #1976d2);">
+                        <span>Blue</span>
+                    </button>
+                    <button class="color-btn" data-color="yellow" style="background: linear-gradient(135deg, #ffeb3b, #f57f17); color: #333;">
+                        <span>Yellow</span>
+                    </button>
+                    <button class="color-btn" data-color="purple" style="background: linear-gradient(135deg, #9c27b0, #7b1fa2);">
+                        <span>Purple</span>
+                    </button>
+                    <button class="color-btn" data-color="orange" style="background: linear-gradient(135deg, #ff9800, #f57c00);">
+                        <span>Orange</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Bet Amount Selection -->
+            <div class="bet-selection">
+                <h3>Select Bet Amount</h3>
+                <div class="bet-amounts" id="bet-amounts">
+                    <!-- Bet amounts will be generated dynamically -->
+                </div>
+            </div>
+
+            <!-- Current Bets -->
+            <div class="current-bets">
+                <h3>Current Round Bets</h3>
+                <div id="bets-list" class="bets-list">
+                    <p class="no-bets">No bets placed yet</p>
+                </div>
+            </div>
+
+            <!-- Game History -->
+            <div class="game-history">
+                <h3>Recent Results</h3>
+                <div id="history-list" class="history-list">
+                    <p class="no-history">No games played yet</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Private Game Tab -->
+        <div id="private-tab" class="tab-content">
+            <div class="private-games">
+                <div class="create-private">
+                    <h3>Create Private Room</h3>
+                    <div class="input-group">
+                        <span class="material-icons">meeting_room</span>
+                        <input type="text" id="room-name" placeholder="Room Name" maxlength="30">
+                    </div>
+                    <div class="input-group">
+                        <span class="material-icons">lock</span>
+                        <input type="password" id="room-password" placeholder="Room Password (Optional)" maxlength="20">
+                    </div>
+                    <button class="create-room-btn" id="create-room-btn">
+                        <span class="material-icons">add</span>
+                        Create Room
+                    </button>
+                </div>
+
+                <div class="join-private">
+                    <h3>Join Private Room</h3>
+                    <div class="input-group">
+                        <span class="material-icons">vpn_key</span>
+                        <input type="text" id="join-room-code" placeholder="Room Code" maxlength="6" style="text-transform: uppercase;">
+                    </div>
+                    <div class="input-group">
+                        <span class="material-icons">lock</span>
+                        <input type="password" id="join-room-password" placeholder="Password (if required)" maxlength="20">
+                    </div>
+                    <button class="join-room-btn" id="join-room-btn">
+                        <span class="material-icons">login</span>
+                        Join Room
+                    </button>
+                </div>
+
+                <div class="private-rooms-list">
+                    <h3>Your Private Rooms</h3>
+                    <div id="private-rooms" class="rooms-list">
+                        <p class="no-rooms">No private rooms yet</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Borrow Tab -->
+        <div id="borrow-tab" class="tab-content">
+            <div class="borrow-system">
+                <div class="borrow-request">
+                    <h3>Request Coins</h3>
+                    <div class="input-group">
+                        <span class="material-icons">person</span>
+                        <input type="text" id="borrow-username" placeholder="Username" maxlength="20">
+                    </div>
+                    <div class="input-group">
+                        <span class="material-icons">monetization_on</span>
+                        <input type="number" id="borrow-amount" placeholder="Amount (1-100)" min="1" max="100">
+                    </div>
+                    <div class="input-group">
+                        <span class="material-icons">message</span>
+                        <input type="text" id="borrow-message" placeholder="Message (Optional)" maxlength="100">
+                    </div>
+                    <button class="request-coins-btn" id="request-coins-btn">
+                        <span class="material-icons">send</span>
+                        Request Coins
+                    </button>
+                </div>
+
+                <div class="borrow-requests">
+                    <h3>Your Requests</h3>
+                    <div id="borrow-requests-list" class="requests-list">
+                        <p class="no-requests">No pending requests</p>
+                    </div>
+                </div>
+
+                <div class="loan-history">
+                    <h3>Loan History</h3>
+                    <div id="loan-history-list" class="history-list">
+                        <p class="no-history">No loan history</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Floating Bet Button -->
+        <div class="floating-bet-container" id="floating-bet-container">
+            <button class="floating-bet-btn disabled" id="place-bet-btn">
+                <span class="material-icons">casino</span>
+                <div class="bet-info">
+                    <span class="bet-text">Select Color & Amount</span>
+                    <span class="bet-amount-text"></span>
+                </div>
+            </button>
+        </div>
+    </div>
+
+    <!-- Profile Modal -->
+    <div id="profile-modal" class="modal hidden">
+        <div class="modal-content profile-modal">
+            <div class="modal-header">
+                <h2>Profile</h2>
+                <button class="close-btn" id="close-profile">
+                    <span class="material-icons">close</span>
+                </button>
+            </div>
+            <div class="profile-content">
+                <div class="profile-avatar-section">
+                    <div class="profile-avatar">
+                        <img id="profile-avatar" src="https://images.pexels.com/photos/771742/pexels-photo-771742.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop" alt="Avatar">
+                        <button class="change-avatar-btn" id="change-avatar-btn">
+                            <span class="material-icons">camera_alt</span>
+                        </button>
+                    </div>
+                    <input type="file" id="avatar-input" accept="image/*" style="display: none;">
+                </div>
+                
+                <div class="profile-info">
+                    <div class="info-row">
+                        <label>Name</label>
+                        <input type="text" id="profile-name" placeholder="Full Name" maxlength="50">
+                    </div>
+                    <div class="info-row">
+                        <label>Username</label>
+                        <input type="text" id="profile-username" placeholder="Username" maxlength="20">
+                    </div>
+                    <div class="info-row">
+                        <label>Email</label>
+                        <input type="email" id="profile-email" readonly>
+                    </div>
+                </div>
+
+                <div class="profile-stats">
+                    <div class="stat-card">
+                        <span class="material-icons">monetization_on</span>
+                        <div>
+                            <h4 id="profile-coins">0</h4>
+                            <p>Coins</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <span class="material-icons">trending_up</span>
+                        <div>
+                            <h4 id="profile-wins">0</h4>
+                            <p>Wins</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <span class="material-icons">trending_down</span>
+                        <div>
+                            <h4 id="profile-losses">0</h4>
+                            <p>Losses</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <span class="material-icons">percent</span>
+                        <div>
+                            <h4 id="profile-winrate">0%</h4>
+                            <p>Win Rate</p>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="save-profile-btn" id="save-profile-btn">
+                    <span class="material-icons">save</span>
+                    Save Changes
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leaderboard Modal -->
+    <div id="leaderboard-modal" class="modal hidden">
+        <div class="modal-content leaderboard-modal">
+            <div class="modal-header">
+                <h2>Leaderboard</h2>
+                <button class="close-btn" id="close-leaderboard">
+                    <span class="material-icons">close</span>
+                </button>
+            </div>
+            <div class="leaderboard-tabs">
+                <button class="leaderboard-tab active" data-tab="coins">
+                    <span class="material-icons">monetization_on</span>
+                    Coins
+                </button>
+                <button class="leaderboard-tab" data-tab="wins">
+                    <span class="material-icons">emoji_events</span>
+                    Wins
+                </button>
+                <button class="leaderboard-tab" data-tab="winrate">
+                    <span class="material-icons">percent</span>
+                    Win Rate
+                </button>
+            </div>
+            <div class="leaderboard-content">
+                <div id="leaderboard-list" class="leaderboard-list">
+                    <div class="loading-leaderboard">Loading...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Result Modal -->
+    <div id="result-modal" class="modal hidden">
+        <div class="modal-content result-modal">
+            <div class="result-animation">
+                <div class="winning-color"></div>
+            </div>
+            <h2 id="result-title">Round Complete!</h2>
+            <p id="result-message">The winning color was...</p>
+            <div class="result-stats">
+                <div class="stat">
+                    <span class="material-icons">casino</span>
+                    <div>
+                        <p>Your Bet</p>
+                        <p id="your-bet">-</p>
+                    </div>
+                </div>
+                <div class="stat">
+                    <span class="material-icons">trending_up</span>
+                    <div>
+                        <p>Result</p>
+                        <p id="bet-result">-</p>
+                    </div>
+                </div>
+            </div>
+            <button class="close-modal-btn" id="close-result-modal">Continue Playing</button>
+        </div>
+    </div>
+
+    <!-- Borrow Request Modal -->
+    <div id="borrow-response-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Coin Request</h2>
+                <button class="close-btn" onclick="this.classList.add('hidden')">
+                    <span class="material-icons">close</span>
+                </button>
+            </div>
+            <div class="request-details">
+                <p><strong id="requester-name">User</strong> is requesting <strong id="request-amount">0</strong> coins</p>
+                <p id="request-message-display" style="margin-top: 10px; font-style: italic;"></p>
+            </div>
+            <div class="modal-actions">
+                <button class="modal-btn secondary" id="decline-borrow">
+                    <span class="material-icons">close</span>
+                    Decline
+                </button>
+                <button class="modal-btn primary" id="approve-borrow">
+                    <span class="material-icons">check</span>
+                    Approve
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Scripts -->
+    <script src="src/firebase-config.js"></script>
+    <script src="src/auth.js"></script>
+    <script src="src/game.js"></script>
+    <script src="src/profile.js"></script>
+    <script src="src/leaderboard.js"></script>
+    <script src="src/private-rooms.js"></script>
+    <script src="src/borrow-system.js"></script>
+    <script src="src/app.js"></script>
+</body>
+</html>
