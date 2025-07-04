@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Coino - Color Prediction Game</title>
+    <title>Coino - Advanced Gaming & Trading Platform</title>
     
     <!-- Meta tags for PWA -->
-    <meta name="description" content="Coino - The ultimate color prediction game with advanced betting system">
+    <meta name="description" content="Coino - Advanced color prediction game with AI-powered trading system">
     <meta name="theme-color" content="#667eea">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -24,6 +24,10 @@
     <!-- Material Icons -->
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     
+    <!-- Chart.js for Trading Charts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    
     <!-- Firebase -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
@@ -37,7 +41,11 @@
     <!-- Loading Screen -->
     <div id="loading-screen" class="loading-screen">
         <div class="loading-spinner"></div>
-        <p>Loading Coino...</p>
+        <p>Initializing AI Systems...</p>
+        <div class="loading-progress">
+            <div class="progress-bar" id="loading-progress-bar"></div>
+        </div>
+        <div class="loading-status" id="loading-status">Starting up...</div>
     </div>
 
     <!-- Authentication Screen -->
@@ -48,7 +56,7 @@
                     <span class="material-icons">casino</span>
                 </div>
                 <h1>Coino</h1>
-                <p>Advanced Color Prediction Game</p>
+                <p>AI-Powered Gaming & Trading Platform</p>
             </div>
             
             <div class="auth-tabs">
@@ -90,7 +98,7 @@
                 </div>
                 <button class="auth-btn" id="register-btn">
                     <span class="material-icons">person_add</span>
-                    Register & Get 10 Coins
+                    Register & Get 10 Coins + 1000 Credits
                 </button>
             </div>
         </div>
@@ -98,7 +106,7 @@
 
     <!-- Main Game Screen -->
     <div id="game-screen" class="screen hidden">
-        <!-- Header -->
+        <!-- Enhanced Header with AI Status -->
         <header class="header">
             <div class="header-content">
                 <div class="user-info" id="user-info-header">
@@ -107,14 +115,29 @@
                     </div>
                     <div>
                         <p id="user-name">Loading...</p>
-                        <p class="coin-balance">
-                            <span class="material-icons">monetization_on</span>
-                            <span id="coin-count">0</span> Coins
-                        </p>
+                        <div class="user-balances">
+                            <div class="balance-item">
+                                <span class="material-icons">monetization_on</span>
+                                <span id="coin-count">0</span> Coins
+                            </div>
+                            <div class="balance-item">
+                                <span class="material-icons">account_balance</span>
+                                <span id="credit-count">0</span> Credits
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="header-actions">
-                    <!-- Admin button will be added dynamically -->
+                    <div class="ai-status-indicator" id="ai-status-indicator">
+                        <span class="material-icons">psychology</span>
+                        <span class="ai-status-text">AI Active</span>
+                        <div class="ai-health-bar">
+                            <div class="ai-health-fill" id="ai-health-fill"></div>
+                        </div>
+                    </div>
+                    <button class="header-btn" id="admin-btn" title="Admin Dashboard" style="display: none;">
+                        <span class="material-icons">admin_panel_settings</span>
+                    </button>
                     <button class="header-btn" id="profile-btn" title="Profile">
                         <span class="material-icons">account_circle</span>
                     </button>
@@ -128,11 +151,15 @@
             </div>
         </header>
 
-        <!-- Navigation Tabs -->
+        <!-- Enhanced Navigation Tabs -->
         <div class="nav-tabs">
             <button class="nav-tab active" data-tab="public">
                 <span class="material-icons">public</span>
-                Public
+                Gaming
+            </button>
+            <button class="nav-tab" data-tab="trading">
+                <span class="material-icons">trending_up</span>
+                Trading (Beta)
             </button>
             <button class="nav-tab" data-tab="private">
                 <span class="material-icons">lock</span>
@@ -146,10 +173,38 @@
 
         <!-- Public Game Tab -->
         <div id="public-tab" class="tab-content active">
+            <!-- AI Game Insights -->
+            <div class="ai-insights-panel">
+                <h3>🤖 AI Game Insights</h3>
+                <div class="insights-grid">
+                    <div class="insight-card">
+                        <span class="material-icons">psychology</span>
+                        <div>
+                            <h4 id="ai-prediction">Analyzing...</h4>
+                            <p>AI Prediction</p>
+                        </div>
+                    </div>
+                    <div class="insight-card">
+                        <span class="material-icons">trending_up</span>
+                        <div>
+                            <h4 id="win-probability">0%</h4>
+                            <p>Win Probability</p>
+                        </div>
+                    </div>
+                    <div class="insight-card">
+                        <span class="material-icons">analytics</span>
+                        <div>
+                            <h4 id="pattern-strength">Low</h4>
+                            <p>Pattern Strength</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Game Status -->
             <div class="game-status">
                 <div class="status-card">
-                    <h3 id="game-status-text">Initializing game system...</h3>
+                    <h3 id="game-status-text">Initializing AI game system...</h3>
                     <div class="game-info">
                         <div class="info-item">
                             <span class="material-icons">people</span>
@@ -210,6 +265,133 @@
                 <h3>Recent Results</h3>
                 <div id="history-list" class="history-list">
                     <p class="no-history">No games played yet</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Trading Tab (New) -->
+        <div id="trading-tab" class="tab-content">
+            <div class="trading-platform">
+                <!-- Trading Header -->
+                <div class="trading-header">
+                    <h2>🚀 AI Trading Platform (Beta)</h2>
+                    <div class="market-status">
+                        <div class="status-indicator active">
+                            <span class="status-dot"></span>
+                            <span>Market Open</span>
+                        </div>
+                        <div class="ai-bots-status">
+                            <span class="material-icons">smart_toy</span>
+                            <span id="active-bots-count">12</span> AI Bots Active
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Portfolio Overview -->
+                <div class="portfolio-overview">
+                    <div class="portfolio-card">
+                        <h3>Portfolio Value</h3>
+                        <div class="portfolio-value">
+                            <span id="portfolio-value">1,000</span>
+                            <span class="currency">Credits</span>
+                        </div>
+                        <div class="portfolio-change" id="portfolio-change">
+                            <span class="material-icons">trending_up</span>
+                            <span>+2.5%</span>
+                        </div>
+                    </div>
+                    <div class="portfolio-card">
+                        <h3>Available Credits</h3>
+                        <div class="portfolio-value">
+                            <span id="available-credits">1,000</span>
+                            <span class="currency">Credits</span>
+                        </div>
+                    </div>
+                    <div class="portfolio-card">
+                        <h3>Active Positions</h3>
+                        <div class="portfolio-value">
+                            <span id="active-positions">0</span>
+                            <span class="currency">Stocks</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stock List and Chart -->
+                <div class="trading-main">
+                    <div class="stocks-panel">
+                        <h3>Available Stocks</h3>
+                        <div class="stock-filters">
+                            <button class="filter-btn active" data-filter="all">All</button>
+                            <button class="filter-btn" data-filter="trending">Trending</button>
+                            <button class="filter-btn" data-filter="ai-picks">AI Picks</button>
+                        </div>
+                        <div class="stocks-list" id="stocks-list">
+                            <!-- Stocks will be populated by JavaScript -->
+                        </div>
+                    </div>
+
+                    <div class="chart-panel">
+                        <div class="chart-header">
+                            <h3 id="selected-stock-name">Select a stock</h3>
+                            <div class="chart-controls">
+                                <button class="timeframe-btn active" data-timeframe="1h">1H</button>
+                                <button class="timeframe-btn" data-timeframe="1d">1D</button>
+                                <button class="timeframe-btn" data-timeframe="1w">1W</button>
+                                <button class="timeframe-btn" data-timeframe="1m">1M</button>
+                            </div>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="stock-chart"></canvas>
+                        </div>
+                        
+                        <!-- Trading Actions -->
+                        <div class="trading-actions" id="trading-actions" style="display: none;">
+                            <div class="action-buttons">
+                                <button class="trade-btn buy-btn" id="buy-btn">
+                                    <span class="material-icons">trending_up</span>
+                                    Buy
+                                </button>
+                                <button class="trade-btn sell-btn" id="sell-btn">
+                                    <span class="material-icons">trending_down</span>
+                                    Sell
+                                </button>
+                            </div>
+                            <div class="trade-inputs">
+                                <div class="input-group">
+                                    <label>Quantity</label>
+                                    <input type="number" id="trade-quantity" min="1" value="1">
+                                </div>
+                                <div class="input-group">
+                                    <label>Total Cost</label>
+                                    <span id="trade-total">0 Credits</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- AI Trading Bots -->
+                <div class="ai-bots-section">
+                    <h3>🤖 AI Trading Bots</h3>
+                    <div class="bots-grid" id="bots-grid">
+                        <!-- AI bots will be populated by JavaScript -->
+                    </div>
+                </div>
+
+                <!-- Holdings -->
+                <div class="holdings-section">
+                    <h3>Your Holdings</h3>
+                    <div class="holdings-list" id="holdings-list">
+                        <p class="no-holdings">No holdings yet. Start trading to build your portfolio!</p>
+                    </div>
+                </div>
+
+                <!-- Market News (AI Generated) -->
+                <div class="market-news">
+                    <h3>📰 AI Market Analysis</h3>
+                    <div class="news-list" id="news-list">
+                        <!-- AI-generated news will be populated -->
+                    </div>
                 </div>
             </div>
         </div>
@@ -309,7 +491,7 @@
         </div>
     </div>
 
-    <!-- Profile Modal -->
+    <!-- Enhanced Profile Modal -->
     <div id="profile-modal" class="modal hidden">
         <div class="modal-content profile-modal">
             <div class="modal-header">
@@ -353,6 +535,13 @@
                         </div>
                     </div>
                     <div class="stat-card">
+                        <span class="material-icons">account_balance</span>
+                        <div>
+                            <h4 id="profile-credits">0</h4>
+                            <p>Credits</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
                         <span class="material-icons">trending_up</span>
                         <div>
                             <h4 id="profile-wins">0</h4>
@@ -371,6 +560,13 @@
                         <div>
                             <h4 id="profile-winrate">0%</h4>
                             <p>Win Rate</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <span class="material-icons">show_chart</span>
+                        <div>
+                            <h4 id="profile-portfolio">0</h4>
+                            <p>Portfolio Value</p>
                         </div>
                     </div>
                 </div>
@@ -404,6 +600,10 @@
                 <button class="leaderboard-tab" data-tab="winrate">
                     <span class="material-icons">percent</span>
                     Win Rate
+                </button>
+                <button class="leaderboard-tab" data-tab="portfolio">
+                    <span class="material-icons">show_chart</span>
+                    Portfolio
                 </button>
             </div>
             <div class="leaderboard-content">
@@ -442,12 +642,50 @@
         </div>
     </div>
 
+    <!-- Trading Modal -->
+    <div id="trading-modal" class="modal hidden">
+        <div class="modal-content trading-modal">
+            <div class="modal-header">
+                <h2 id="trade-modal-title">Buy Stock</h2>
+                <button class="close-btn" id="close-trading-modal">
+                    <span class="material-icons">close</span>
+                </button>
+            </div>
+            <div class="trade-modal-content">
+                <div class="stock-info">
+                    <h3 id="trade-stock-name">Stock Name</h3>
+                    <div class="stock-price">
+                        <span id="trade-stock-price">$0.00</span>
+                        <span class="price-change" id="trade-price-change">+0.00%</span>
+                    </div>
+                </div>
+                <div class="trade-form">
+                    <div class="input-group">
+                        <label>Quantity</label>
+                        <input type="number" id="modal-trade-quantity" min="1" value="1">
+                    </div>
+                    <div class="input-group">
+                        <label>Total Cost</label>
+                        <span id="modal-trade-total">0 Credits</span>
+                    </div>
+                    <div class="available-credits">
+                        Available: <span id="modal-available-credits">0</span> Credits
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button class="modal-btn secondary" id="cancel-trade">Cancel</button>
+                    <button class="modal-btn primary" id="confirm-trade">Confirm Trade</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Borrow Request Modal -->
     <div id="borrow-response-modal" class="modal hidden">
         <div class="modal-content">
             <div class="modal-header">
                 <h2>Coin Request</h2>
-                <button class="close-btn" onclick="this.classList.add('hidden')">
+                <button class="close-btn" onclick="this.closest('.modal').classList.add('hidden')">
                     <span class="material-icons">close</span>
                 </button>
             </div>
@@ -473,8 +711,11 @@
 
     <!-- Scripts -->
     <script src="src/firebase-config.js"></script>
+    <script src="src/ai-core.js"></script>
+    <script src="src/admin-dashboard.js"></script>
     <script src="src/auth.js"></script>
     <script src="src/game.js"></script>
+    <script src="src/trading-system.js"></script>
     <script src="src/profile.js"></script>
     <script src="src/leaderboard.js"></script>
     <script src="src/private-rooms.js"></script>

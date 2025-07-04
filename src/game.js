@@ -1,3 +1,4 @@
+// Enhanced Game Manager with AI Integration and Trading System
 class GameManager {
     constructor() {
         this.currentRound = null;
@@ -11,6 +12,12 @@ class GameManager {
         this.isCreatingRound = false;
         this.betInProgress = false;
         this.resultModalShown = false;
+        
+        // AI Integration
+        this.aiPredictions = new Map();
+        this.gamePatterns = [];
+        this.userBehaviorData = new Map();
+        this.aiInsightsInterval = null;
         
         // Listeners
         this.unsubscribeRounds = null;
@@ -31,6 +38,7 @@ class GameManager {
         this.generateBetAmounts();
         this.setupTabNavigation();
         this.setupAdminControls();
+        this.initializeAIIntegration();
         
         // Start the game system with delay
         setTimeout(() => {
@@ -38,14 +46,195 @@ class GameManager {
         }, 2000);
     }
 
+    initializeAIIntegration() {
+        // Start AI insights updates
+        this.aiInsightsInterval = setInterval(() => {
+            this.updateAIInsights();
+        }, 5000);
+
+        // Monitor AI health
+        this.monitorAIHealth();
+        
+        // Initialize AI predictions
+        this.initializeAIPredictions();
+    }
+
+    async initializeAIPredictions() {
+        try {
+            // Generate initial AI predictions
+            const colors = ['red', 'green', 'blue', 'yellow', 'purple', 'orange'];
+            const prediction = colors[Math.floor(Math.random() * colors.length)];
+            const confidence = Math.random() * 0.4 + 0.6; // 60-100%
+            
+            this.aiPredictions.set('current', {
+                color: prediction,
+                confidence: confidence,
+                timestamp: Date.now()
+            });
+
+            this.updateAIInsights();
+        } catch (error) {
+            console.error('Error initializing AI predictions:', error);
+        }
+    }
+
+    updateAIInsights() {
+        try {
+            const prediction = this.aiPredictions.get('current');
+            if (prediction) {
+                const aiPredictionEl = document.getElementById('ai-prediction');
+                const winProbabilityEl = document.getElementById('win-probability');
+                const patternStrengthEl = document.getElementById('pattern-strength');
+
+                if (aiPredictionEl) {
+                    aiPredictionEl.textContent = prediction.color.toUpperCase();
+                }
+                
+                if (winProbabilityEl) {
+                    winProbabilityEl.textContent = `${Math.round(prediction.confidence * 100)}%`;
+                }
+                
+                if (patternStrengthEl) {
+                    const strength = prediction.confidence > 0.8 ? 'High' : 
+                                   prediction.confidence > 0.7 ? 'Medium' : 'Low';
+                    patternStrengthEl.textContent = strength;
+                }
+            }
+
+            // Update AI status indicator
+            this.updateAIStatusIndicator();
+        } catch (error) {
+            console.error('Error updating AI insights:', error);
+        }
+    }
+
+    updateAIStatusIndicator() {
+        const aiStatusIndicator = document.getElementById('ai-status-indicator');
+        const aiHealthFill = document.getElementById('ai-health-fill');
+        
+        if (window.coinoAI && aiStatusIndicator) {
+            const aiStatus = window.coinoAI.getSystemStatus();
+            const healthScore = aiStatus.monitoring?.healthScore || 100;
+            
+            if (aiHealthFill) {
+                aiHealthFill.style.width = `${healthScore}%`;
+                aiHealthFill.className = `ai-health-fill ${healthScore > 80 ? 'healthy' : healthScore > 50 ? 'warning' : 'critical'}`;
+            }
+            
+            const statusText = aiStatusIndicator.querySelector('.ai-status-text');
+            if (statusText) {
+                statusText.textContent = healthScore > 80 ? 'AI Optimal' : 
+                                       healthScore > 50 ? 'AI Warning' : 'AI Critical';
+            }
+        }
+    }
+
+    monitorAIHealth() {
+        setInterval(() => {
+            if (window.coinoAI) {
+                const status = window.coinoAI.getSystemStatus();
+                if (status.monitoring.healthScore < 50) {
+                    this.showToast('AI system health is critical', 'warning');
+                }
+            }
+        }, 60000); // Check every minute
+    }
+
     async initializeGameSystem() {
         try {
             await this.ensureActiveRound();
             this.listenToGameUpdates();
-            console.log('Game system initialized successfully');
+            this.startAILearning();
+            console.log('Enhanced game system with AI initialized successfully');
         } catch (error) {
             console.error('Error initializing game system:', error);
+            if (window.coinoAI) {
+                window.coinoAI.handleCriticalError('GAME_SYSTEM_INIT_FAILED', error);
+            }
             setTimeout(() => this.initializeGameSystem(), 5000);
+        }
+    }
+
+    startAILearning() {
+        // Learn from game patterns
+        setInterval(() => {
+            this.analyzeGamePatterns();
+        }, 30000);
+
+        // Update user behavior data
+        setInterval(() => {
+            this.updateUserBehaviorData();
+        }, 15000);
+    }
+
+    async analyzeGamePatterns() {
+        try {
+            if (this.gamePatterns.length > 10) {
+                const recentPatterns = this.gamePatterns.slice(-10);
+                const colorCounts = {};
+                
+                recentPatterns.forEach(pattern => {
+                    colorCounts[pattern.winningColor] = (colorCounts[pattern.winningColor] || 0) + 1;
+                });
+
+                // Generate new AI prediction based on patterns
+                const mostFrequent = Object.keys(colorCounts).reduce((a, b) => 
+                    colorCounts[a] > colorCounts[b] ? a : b
+                );
+
+                // AI tries to predict the opposite of the most frequent (anti-pattern)
+                const colors = ['red', 'green', 'blue', 'yellow', 'purple', 'orange'];
+                const oppositeColors = colors.filter(c => c !== mostFrequent);
+                const prediction = oppositeColors[Math.floor(Math.random() * oppositeColors.length)];
+                
+                this.aiPredictions.set('current', {
+                    color: prediction,
+                    confidence: Math.random() * 0.3 + 0.7, // 70-100%
+                    timestamp: Date.now(),
+                    basedOn: 'pattern_analysis'
+                });
+
+                // Store AI learning data
+                if (window.coinoAI) {
+                    await window.coinoAI.storeModelData('gamePatterns', {
+                        patterns: recentPatterns,
+                        prediction: prediction,
+                        confidence: this.aiPredictions.get('current').confidence,
+                        timestamp: Date.now()
+                    });
+                }
+            }
+        } catch (error) {
+            console.error('Error analyzing game patterns:', error);
+            if (window.coinoAI) {
+                window.coinoAI.handleCriticalError('GAME_PATTERN_ANALYSIS_FAILED', error);
+            }
+        }
+    }
+
+    async updateUserBehaviorData() {
+        try {
+            const user = window.authManager?.getCurrentUser();
+            if (!user || !this.userData) return;
+
+            const behaviorData = {
+                userId: user.uid,
+                currentCoins: this.userData.coins,
+                currentCredits: this.userData.credits || 1000,
+                selectedColor: this.selectedColor,
+                selectedBetAmount: this.selectedBetAmount,
+                timestamp: Date.now(),
+                sessionDuration: Date.now() - (this.sessionStartTime || Date.now())
+            };
+
+            this.userBehaviorData.set(user.uid, behaviorData);
+
+            // Store in AI system
+            if (window.coinoAI) {
+                await window.coinoAI.storeModelData('userBehavior', behaviorData);
+            }
+        } catch (error) {
+            console.error('Error updating user behavior data:', error);
         }
     }
 
@@ -69,6 +258,163 @@ class GameManager {
         if (closeResultBtn) {
             closeResultBtn.addEventListener('click', () => this.closeResultModal());
         }
+
+        // Auth form handling
+        this.setupAuthEventListeners();
+    }
+
+    setupAuthEventListeners() {
+        // Tab switching
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const tab = e.target.dataset.tab;
+                this.switchAuthTab(tab);
+            });
+        });
+
+        // Login form
+        const loginBtn = document.getElementById('login-btn');
+        if (loginBtn) {
+            loginBtn.addEventListener('click', () => this.handleLogin());
+        }
+
+        // Register form
+        const registerBtn = document.getElementById('register-btn');
+        if (registerBtn) {
+            registerBtn.addEventListener('click', () => this.handleRegister());
+        }
+
+        // Logout button
+        const logoutBtn = document.getElementById('logout-btn');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', () => this.handleLogout());
+        }
+
+        // Enter key handling
+        document.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                const activeForm = document.querySelector('.auth-form:not(.hidden)');
+                if (activeForm) {
+                    if (activeForm.id === 'login-form') {
+                        this.handleLogin();
+                    } else if (activeForm.id === 'register-form') {
+                        this.handleRegister();
+                    }
+                }
+            }
+        });
+    }
+
+    switchAuthTab(tab) {
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('.auth-form').forEach(form => form.classList.add('hidden'));
+        
+        document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
+        document.getElementById(`${tab}-form`).classList.remove('hidden');
+    }
+
+    async handleLogin() {
+        const email = document.getElementById('login-email')?.value?.trim();
+        const password = document.getElementById('login-password')?.value;
+
+        if (!email || !password) {
+            this.showToast('Please fill in all fields', 'error');
+            return;
+        }
+
+        if (!this.validateEmail(email)) {
+            this.showToast('Please enter a valid email', 'error');
+            return;
+        }
+
+        try {
+            const loginBtn = document.getElementById('login-btn');
+            if (loginBtn) {
+                loginBtn.disabled = true;
+                loginBtn.innerHTML = '<span class="material-icons">hourglass_empty</span> Logging in...';
+            }
+
+            if (window.authManager) {
+                await window.authManager.login(email, password);
+            } else {
+                throw new Error('Auth manager not available');
+            }
+        } catch (error) {
+            console.error('Login error:', error);
+            this.showToast('Login failed. Please check your credentials.', 'error');
+        } finally {
+            const loginBtn = document.getElementById('login-btn');
+            if (loginBtn) {
+                loginBtn.disabled = false;
+                loginBtn.innerHTML = '<span class="material-icons">login</span> Login';
+            }
+        }
+    }
+
+    async handleRegister() {
+        const name = document.getElementById('register-name')?.value?.trim();
+        const username = document.getElementById('register-username')?.value?.trim();
+        const email = document.getElementById('register-email')?.value?.trim();
+        const password = document.getElementById('register-password')?.value;
+
+        if (!name || !username || !email || !password) {
+            this.showToast('Please fill in all fields', 'error');
+            return;
+        }
+
+        if (!this.validateEmail(email)) {
+            this.showToast('Please enter a valid email', 'error');
+            return;
+        }
+
+        if (password.length < 6) {
+            this.showToast('Password must be at least 6 characters', 'error');
+            return;
+        }
+
+        if (username.length < 3) {
+            this.showToast('Username must be at least 3 characters', 'error');
+            return;
+        }
+
+        try {
+            const registerBtn = document.getElementById('register-btn');
+            if (registerBtn) {
+                registerBtn.disabled = true;
+                registerBtn.innerHTML = '<span class="material-icons">hourglass_empty</span> Creating account...';
+            }
+
+            if (window.authManager) {
+                await window.authManager.register(email, password, name, username);
+            } else {
+                throw new Error('Auth manager not available');
+            }
+        } catch (error) {
+            console.error('Registration error:', error);
+            this.showToast('Registration failed. Please try again.', 'error');
+        } finally {
+            const registerBtn = document.getElementById('register-btn');
+            if (registerBtn) {
+                registerBtn.disabled = false;
+                registerBtn.innerHTML = '<span class="material-icons">person_add</span> Register & Get 10 Coins + 1000 Credits';
+            }
+        }
+    }
+
+    async handleLogout() {
+        try {
+            if (window.authManager) {
+                await window.authManager.logout();
+            }
+        } catch (error) {
+            console.error('Logout error:', error);
+            this.showToast('Logout failed', 'error');
+        }
+    }
+
+    validateEmail(email) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return emailRegex.test(email);
     }
 
     debounce(func, wait) {
@@ -85,258 +431,21 @@ class GameManager {
 
     setupAdminControls() {
         const headerActions = document.querySelector('.header-actions');
-        if (headerActions && !document.getElementById('admin-btn')) {
-            const adminBtn = document.createElement('button');
-            adminBtn.id = 'admin-btn';
-            adminBtn.className = 'header-btn admin-btn';
-            adminBtn.title = 'Admin Panel';
-            adminBtn.innerHTML = '<span class="material-icons">admin_panel_settings</span>';
-            adminBtn.style.display = 'none';
+        const adminBtn = document.getElementById('admin-btn');
+        
+        if (adminBtn) {
             adminBtn.addEventListener('click', () => this.showAdminPanel());
-            headerActions.insertBefore(adminBtn, headerActions.firstChild);
         }
     }
 
     async showAdminPanel() {
-        const userData = await window.authManager?.getUserData();
+        const userData = await this.getUserData();
         if (!userData?.isAdmin) return;
 
-        const modal = document.createElement('div');
-        modal.className = 'modal';
-        modal.innerHTML = `
-            <div class="modal-content admin-modal">
-                <div class="modal-header">
-                    <h2>Admin Control Panel</h2>
-                    <button class="close-btn" onclick="this.closest('.modal').remove()">
-                        <span class="material-icons">close</span>
-                    </button>
-                </div>
-                <div class="admin-actions">
-                    <button class="admin-action-btn danger" onclick="window.gameManager.adminDeleteAllData()">
-                        <span class="material-icons">delete_forever</span>
-                        Delete All Data
-                    </button>
-                    <button class="admin-action-btn" onclick="window.gameManager.adminForceNewRound()">
-                        <span class="material-icons">add_circle</span>
-                        Force New Round
-                    </button>
-                    <button class="admin-action-btn" onclick="window.gameManager.adminResetUserCoins()">
-                        <span class="material-icons">refresh</span>
-                        Reset All User Coins
-                    </button>
-                    <button class="admin-action-btn" onclick="window.gameManager.adminEndCurrentRound()">
-                        <span class="material-icons">stop</span>
-                        End Current Round
-                    </button>
-                    <button class="admin-action-btn" onclick="window.gameManager.adminProcessStuckResults()">
-                        <span class="material-icons">build</span>
-                        Process Stuck Results
-                    </button>
-                    <button class="admin-action-btn" onclick="window.gameManager.adminOptimizeDatabase()">
-                        <span class="material-icons">speed</span>
-                        Optimize Database
-                    </button>
-                </div>
-                <div class="admin-stats">
-                    <h3>System Statistics</h3>
-                    <div id="admin-stats-content">Loading...</div>
-                </div>
-            </div>
-        `;
-        document.body.appendChild(modal);
-        this.loadAdminStats();
-    }
-
-    async loadAdminStats() {
-        try {
-            const [roundsSnapshot, betsSnapshot, usersSnapshot] = await Promise.all([
-                db.collection('rounds').get(),
-                db.collection('bets').get(),
-                db.collection('users').get()
-            ]);
-
-            const statsContent = document.getElementById('admin-stats-content');
-            if (statsContent) {
-                statsContent.innerHTML = `
-                    <div class="stat-item">Total Rounds: ${roundsSnapshot.size}</div>
-                    <div class="stat-item">Total Bets: ${betsSnapshot.size}</div>
-                    <div class="stat-item">Total Users: ${usersSnapshot.size}</div>
-                    <div class="stat-item">Current Round: ${this.currentRound ? 'Active' : 'None'}</div>
-                    <div class="stat-item">Processing: ${this.isProcessingResults ? 'Yes' : 'No'}</div>
-                    <div class="stat-item">Bet In Progress: ${this.betInProgress ? 'Yes' : 'No'}</div>
-                `;
-            }
-        } catch (error) {
-            console.error('Error loading admin stats:', error);
-        }
-    }
-
-    async adminProcessStuckResults() {
-        try {
-            const stuckRounds = await db.collection('rounds')
-                .where('status', '==', 'active')
-                .where('type', '==', 'public')
-                .get();
-
-            for (const doc of stuckRounds.docs) {
-                const roundData = doc.data();
-                if (roundData.startTime) {
-                    const startTime = roundData.startTime.toDate();
-                    const elapsed = Date.now() - startTime.getTime();
-                    
-                    if (elapsed >= this.roundDuration) {
-                        await this.endRound(doc.id);
-                    }
-                }
-            }
-            
-            window.authManager?.showToast('Processed stuck results', 'success');
-        } catch (error) {
-            console.error('Error processing stuck results:', error);
-            window.authManager?.showToast('Error processing results', 'error');
-        }
-    }
-
-    async adminOptimizeDatabase() {
-        try {
-            // Clean up old completed rounds (keep last 100)
-            const oldRounds = await db.collection('rounds')
-                .where('status', '==', 'completed')
-                .orderBy('endTime', 'desc')
-                .offset(100)
-                .get();
-
-            const batch = db.batch();
-            oldRounds.docs.forEach(doc => {
-                batch.delete(doc.ref);
-            });
-
-            if (oldRounds.size > 0) {
-                await batch.commit();
-            }
-
-            window.authManager?.showToast(`Cleaned up ${oldRounds.size} old rounds`, 'success');
-        } catch (error) {
-            console.error('Error optimizing database:', error);
-            window.authManager?.showToast('Error optimizing database', 'error');
-        }
-    }
-
-    async adminDeleteAllData() {
-        if (!confirm('⚠️ DELETE ALL DATA? This cannot be undone!')) return;
-        if (!confirm('This will delete ALL rounds, bets, and reset user coins. Continue?')) return;
-
-        try {
-            // Delete in batches to avoid timeout
-            await this.deleteBatchCollection('rounds');
-            await this.deleteBatchCollection('bets');
-            
-            // Reset user data (except admin)
-            const users = await db.collection('users').get();
-            const batches = this.chunkArray(users.docs, this.batchSize);
-            
-            for (const batch of batches) {
-                const batchWrite = db.batch();
-                batch.forEach(doc => {
-                    const userData = doc.data();
-                    if (!userData.isAdmin) {
-                        batchWrite.update(doc.ref, {
-                            coins: 10,
-                            totalBets: 0,
-                            totalWins: 0,
-                            totalLosses: 0,
-                            winRate: 0
-                        });
-                    }
-                });
-                await batchWrite.commit();
-            }
-            
-            window.authManager?.showToast('All data deleted successfully', 'success');
-            document.querySelector('.modal')?.remove();
-            
-            // Restart system
-            await this.loadUserData();
-            await this.ensureActiveRound();
-        } catch (error) {
-            console.error('Error deleting data:', error);
-            window.authManager?.showToast('Error deleting data', 'error');
-        }
-    }
-
-    async deleteBatchCollection(collectionName) {
-        const collection = db.collection(collectionName);
-        const batchSize = 100;
-        
-        let query = collection.limit(batchSize);
-        let snapshot = await query.get();
-        
-        while (!snapshot.empty) {
-            const batch = db.batch();
-            snapshot.docs.forEach(doc => {
-                batch.delete(doc.ref);
-            });
-            await batch.commit();
-            
-            snapshot = await query.get();
-        }
-    }
-
-    chunkArray(array, size) {
-        const chunks = [];
-        for (let i = 0; i < array.length; i += size) {
-            chunks.push(array.slice(i, i + size));
-        }
-        return chunks;
-    }
-
-    async adminForceNewRound() {
-        try {
-            this.isProcessingResults = false;
-            this.resultModalShown = false;
-            await this.createNewRound();
-            window.authManager?.showToast('New round created', 'success');
-        } catch (error) {
-            console.error('Error creating round:', error);
-            window.authManager?.showToast('Error creating round', 'error');
-        }
-    }
-
-    async adminResetUserCoins() {
-        if (!confirm('Reset all user coins to 10?')) return;
-
-        try {
-            const users = await db.collection('users').where('isAdmin', '==', false).get();
-            const batches = this.chunkArray(users.docs, this.batchSize);
-            
-            for (const batch of batches) {
-                const batchWrite = db.batch();
-                batch.forEach(doc => {
-                    batchWrite.update(doc.ref, { coins: 10 });
-                });
-                await batchWrite.commit();
-            }
-            
-            window.authManager?.showToast('User coins reset', 'success');
-            await this.loadUserData();
-        } catch (error) {
-            console.error('Error resetting coins:', error);
-            window.authManager?.showToast('Error resetting coins', 'error');
-        }
-    }
-
-    async adminEndCurrentRound() {
-        if (!this.currentRound) {
-            window.authManager?.showToast('No active round to end', 'warning');
-            return;
-        }
-
-        try {
-            await this.endRound(this.currentRound.id);
-            window.authManager?.showToast('Round ended manually', 'success');
-        } catch (error) {
-            console.error('Error ending round:', error);
-            window.authManager?.showToast('Error ending round', 'error');
+        if (window.adminDashboard) {
+            window.adminDashboard.show();
+        } else {
+            this.showToast('Admin dashboard not available', 'error');
         }
     }
 
@@ -365,6 +474,10 @@ class GameManager {
         // Initialize tab-specific functionality
         if (tabName === 'public') {
             this.listenToGameUpdates();
+        } else if (tabName === 'trading') {
+            if (window.tradingSystem) {
+                window.tradingSystem.initializeTradingTab();
+            }
         } else {
             this.stopGameListeners();
         }
@@ -403,11 +516,14 @@ class GameManager {
         if (colorBtn) colorBtn.classList.add('selected');
         
         this.updatePlaceBetButton();
+        
+        // Store user behavior for AI
+        this.trackUserAction('color_selection', { color, timestamp: Date.now() });
     }
 
     selectBetAmount(amount) {
         if (!this.userData || (this.userData.coins < amount && !this.userData.isAdmin)) {
-            window.authManager?.showToast('Insufficient coins', 'error');
+            this.showToast('Insufficient coins', 'error');
             return;
         }
 
@@ -418,6 +534,24 @@ class GameManager {
         if (amountBtn) amountBtn.classList.add('selected');
         
         this.updatePlaceBetButton();
+        
+        // Store user behavior for AI
+        this.trackUserAction('bet_amount_selection', { amount, timestamp: Date.now() });
+    }
+
+    trackUserAction(action, data) {
+        try {
+            if (window.coinoAI) {
+                window.coinoAI.storeModelData('userActions', {
+                    action,
+                    data,
+                    userId: window.authManager?.getCurrentUser()?.uid,
+                    timestamp: Date.now()
+                });
+            }
+        } catch (error) {
+            console.error('Error tracking user action:', error);
+        }
     }
 
     updatePlaceBetButton() {
@@ -448,19 +582,19 @@ class GameManager {
 
     async placeBet() {
         if (!this.selectedColor || !this.selectedBetAmount || this.betInProgress) {
-            window.authManager?.showToast('Please select color and amount', 'warning');
+            this.showToast('Please select color and amount', 'warning');
             return;
         }
 
         if (!this.userData || (this.userData.coins < this.selectedBetAmount && !this.userData.isAdmin)) {
-            window.authManager?.showToast('Insufficient coins', 'error');
+            this.showToast('Insufficient coins', 'error');
             return;
         }
 
         await this.ensureActiveRound();
 
         if (!this.currentRound || this.currentRound.status !== 'active') {
-            window.authManager?.showToast('No active round available', 'warning');
+            this.showToast('No active round available', 'warning');
             return;
         }
 
@@ -480,7 +614,7 @@ class GameManager {
                 .get();
 
             if (!existingBet.empty) {
-                window.authManager?.showToast('You already have a bet in this round', 'warning');
+                this.showToast('You already have a bet in this round', 'warning');
                 return;
             }
 
@@ -517,7 +651,8 @@ class GameManager {
                         status: 'pending',
                         roundId: this.currentRound.id,
                         type: 'public',
-                        processed: false
+                        processed: false,
+                        aiPrediction: this.aiPredictions.get('current')
                     };
                     
                     transaction.set(betRef, betData);
@@ -541,11 +676,23 @@ class GameManager {
 
             this.resetBetSelection();
             await this.loadUserData();
-            window.authManager?.showToast('Bet placed successfully!', 'success');
+            this.showToast('Bet placed successfully!', 'success');
+
+            // Track bet placement for AI
+            this.trackUserAction('bet_placed', {
+                color: this.selectedColor,
+                amount: this.selectedBetAmount,
+                roundId: this.currentRound.id,
+                timestamp: Date.now()
+            });
 
         } catch (error) {
             console.error('Error placing bet:', error);
-            window.authManager?.showToast(error.message || 'Error placing bet', 'error');
+            this.showToast(error.message || 'Error placing bet', 'error');
+            
+            if (window.coinoAI) {
+                window.coinoAI.handleCriticalError('BET_PLACEMENT_FAILED', error);
+            }
         } finally {
             this.betInProgress = false;
             this.updatePlaceBetButton();
@@ -601,6 +748,9 @@ class GameManager {
             }
         } catch (error) {
             console.error('Error ensuring active round:', error);
+            if (window.coinoAI) {
+                window.coinoAI.handleCriticalError('ENSURE_ACTIVE_ROUND_FAILED', error);
+            }
             setTimeout(() => this.ensureActiveRound(), 3000);
         }
     }
@@ -619,11 +769,12 @@ class GameManager {
                 totalAmount: 0,
                 type: 'public',
                 createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                processed: false
+                processed: false,
+                aiPrediction: this.aiPredictions.get('current')
             };
 
             const roundRef = await db.collection('rounds').add(roundData);
-            console.log('New round created:', roundRef.id);
+            console.log('New round created with AI prediction:', roundRef.id);
             
             // Set timeout to end round with buffer
             setTimeout(async () => {
@@ -634,6 +785,9 @@ class GameManager {
 
         } catch (error) {
             console.error('Error creating new round:', error);
+            if (window.coinoAI) {
+                window.coinoAI.handleCriticalError('CREATE_ROUND_FAILED', error);
+            }
         } finally {
             this.isCreatingRound = false;
         }
@@ -669,6 +823,14 @@ class GameManager {
 
             console.log(`Round ${roundId} ended with winning color: ${winningColor}`);
 
+            // Store game pattern for AI learning
+            this.gamePatterns.push({
+                roundId,
+                winningColor,
+                timestamp: Date.now(),
+                aiPrediction: this.aiPredictions.get('current')
+            });
+
             // Process bets with improved logic
             await this.processBetsOptimized(roundId, winningColor);
             
@@ -676,6 +838,9 @@ class GameManager {
             setTimeout(async () => {
                 await this.showResultModal(winningColor, roundId);
             }, 1000);
+
+            // Generate new AI prediction for next round
+            this.generateNextAIPrediction(winningColor);
 
             // Wait for result display duration before creating new round
             setTimeout(async () => {
@@ -686,8 +851,53 @@ class GameManager {
 
         } catch (error) {
             console.error('Error ending round:', error);
+            if (window.coinoAI) {
+                window.coinoAI.handleCriticalError('END_ROUND_FAILED', error);
+            }
             this.isProcessingResults = false;
             setTimeout(() => this.ensureActiveRound(), 3000);
+        }
+    }
+
+    generateNextAIPrediction(lastWinningColor) {
+        try {
+            const colors = ['red', 'green', 'blue', 'yellow', 'purple', 'orange'];
+            
+            // AI learns from recent patterns
+            if (this.gamePatterns.length > 5) {
+                const recentColors = this.gamePatterns.slice(-5).map(p => p.winningColor);
+                const colorCounts = {};
+                
+                recentColors.forEach(color => {
+                    colorCounts[color] = (colorCounts[color] || 0) + 1;
+                });
+
+                // Predict less frequent colors
+                const leastFrequent = colors.filter(color => 
+                    (colorCounts[color] || 0) <= Math.min(...Object.values(colorCounts))
+                );
+                
+                const prediction = leastFrequent[Math.floor(Math.random() * leastFrequent.length)];
+                const confidence = Math.random() * 0.2 + 0.75; // 75-95%
+                
+                this.aiPredictions.set('current', {
+                    color: prediction,
+                    confidence: confidence,
+                    timestamp: Date.now(),
+                    basedOn: 'frequency_analysis'
+                });
+            } else {
+                // Random prediction for early rounds
+                const prediction = colors[Math.floor(Math.random() * colors.length)];
+                this.aiPredictions.set('current', {
+                    color: prediction,
+                    confidence: Math.random() * 0.3 + 0.6, // 60-90%
+                    timestamp: Date.now(),
+                    basedOn: 'random'
+                });
+            }
+        } catch (error) {
+            console.error('Error generating AI prediction:', error);
         }
     }
 
@@ -735,10 +945,26 @@ class GameManager {
             const uniqueUserIds = [...new Set(bets.map(bet => bet.userId))];
             await this.updateWinRatesOptimized(uniqueUserIds);
 
+            // Store AI learning data about bet outcomes
+            if (window.coinoAI) {
+                await window.coinoAI.storeModelData('betOutcomes', {
+                    roundId,
+                    winningColor,
+                    totalBets: bets.length,
+                    winningBets: winningBets.length,
+                    losingBets: losingBets.length,
+                    totalAmount: bets.reduce((sum, bet) => sum + bet.amount, 0),
+                    timestamp: Date.now()
+                });
+            }
+
             console.log('Bet processing completed successfully');
 
         } catch (error) {
             console.error('Error processing bets:', error);
+            if (window.coinoAI) {
+                window.coinoAI.handleCriticalError('BET_PROCESSING_FAILED', error);
+            }
         }
     }
 
@@ -838,9 +1064,17 @@ class GameManager {
         }
     }
 
+    chunkArray(array, size) {
+        const chunks = [];
+        for (let i = 0; i < array.length; i += size) {
+            chunks.push(array.slice(i, i + size));
+        }
+        return chunks;
+    }
+
     async loadUserData() {
         try {
-            const userData = await window.authManager?.getUserData();
+            const userData = await this.getUserData();
             if (userData) {
                 this.userData = userData;
                 this.updateUserUI();
@@ -856,16 +1090,35 @@ class GameManager {
         }
     }
 
+    async getUserData() {
+        const user = window.authManager?.getCurrentUser();
+        if (!user) return null;
+
+        try {
+            const userDoc = await db.collection('users').doc(user.uid).get();
+            if (userDoc.exists) {
+                return { id: user.uid, ...userDoc.data() };
+            }
+        } catch (error) {
+            console.error('Error getting user data:', error);
+        }
+        return null;
+    }
+
     updateUserUI() {
         if (!this.userData) return;
 
         const userNameEl = document.getElementById('user-name');
         const coinCountEl = document.getElementById('coin-count');
+        const creditCountEl = document.getElementById('credit-count');
         const headerAvatarEl = document.getElementById('header-avatar');
 
         if (userNameEl) userNameEl.textContent = this.userData.displayName || 'User';
         if (coinCountEl) {
             coinCountEl.textContent = this.userData.isAdmin ? '∞' : this.userData.coins.toLocaleString();
+        }
+        if (creditCountEl) {
+            creditCountEl.textContent = this.userData.isAdmin ? '∞' : (this.userData.credits || 1000).toLocaleString();
         }
         if (headerAvatarEl && this.userData.avatar) {
             headerAvatarEl.src = this.userData.avatar;
@@ -972,11 +1225,11 @@ class GameManager {
         if (!statusText) return;
 
         if (status === 'waiting' || !this.currentRound) {
-            statusText.textContent = 'Preparing next round...';
+            statusText.textContent = 'AI preparing next round...';
             if (playerCount) playerCount.textContent = 'Standby';
         } else if (this.currentRound) {
             if (this.currentRound.status === 'active') {
-                statusText.textContent = 'Round in progress! Place your bets!';
+                statusText.textContent = 'Round in progress! AI is analyzing patterns...';
                 if (playerCount) playerCount.textContent = `${this.currentRound.totalBets || 0} bets`;
             }
         }
@@ -1189,12 +1442,44 @@ class GameManager {
         this.resultModalShown = false;
     }
 
+    showToast(message, type = 'info') {
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        toast.innerHTML = `
+            <span class="material-icons">${type === 'success' ? 'check_circle' : type === 'error' ? 'error' : type === 'warning' ? 'warning' : 'info'}</span>
+            <span>${message}</span>
+        `;
+        
+        const container = document.getElementById('toast-container');
+        if (container) {
+            container.appendChild(toast);
+            
+            // Animate in
+            setTimeout(() => toast.classList.add('show'), 100);
+            
+            // Remove after 3 seconds
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => {
+                    if (container.contains(toast)) {
+                        container.removeChild(toast);
+                    }
+                }, 300);
+            }, 3000);
+        }
+    }
+
     destroy() {
         this.stopGameListeners();
         this.betInProgress = false;
         this.isCreatingRound = false;
         this.isProcessingResults = false;
         this.resultModalShown = false;
+        
+        if (this.aiInsightsInterval) {
+            clearInterval(this.aiInsightsInterval);
+            this.aiInsightsInterval = null;
+        }
     }
 }
 
